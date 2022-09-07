@@ -1,3 +1,11 @@
 {
-    "cSpell.words": ["httpsrv"]
+    "cSpell.words": [
+        "extendee",
+        "httpsrv",
+        "Idxs",
+        "protobuf",
+        "protoc",
+        "protoimpl",
+        "protoreflect"
+    ]
 }
