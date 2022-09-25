@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
         "casbin",
+        "ctxtags",
+        "dynaport",
         "errdetails",
         "extendee",
         "ezotaka",
@@ -11,11 +13,14 @@
         "httpsrv",
         "Idxs",
         "ismaxed",
+        "Memberlist",
         "nearestmultiple",
         "newgrpc",
         "newindex",
         "newlog",
         "newsegment",
+        "ocgrpc",
+        "opencensus",
         "proglog",
         "protobuf",
         "protoc",
@@ -24,6 +29,7 @@
         "rawreadat",
         "readat",
         "stretchr",
-        "tysonmote"
+        "tysonmote",
+        "zapcore"
     ]
 }
