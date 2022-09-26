@@ -109,6 +109,18 @@ func TestAgent(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Equal(t, consumeResponse.Record.Value, []byte("foo"))
+
+	// consumeResponse, err = leaderClient.Consume(
+	// 	context.Background(),
+	// 	&api.ConsumeRequest{
+	// 		Offset: produceResponse.Offset + 1,
+	// 	},
+	// )
+	// require.Nil(t, consumeResponse)
+	// require.Error(t, err)
+	// got := status.Code(err)
+	// want := status.Code(api.ErrOffsetOutOfRange{}.GRPCStatus().Err())
+	// require.Equal(t, want, got)
 }
 
 func client(
