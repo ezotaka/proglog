@@ -2,6 +2,7 @@
     "cSpell.words": [
         "boltdb",
         "casbin",
+        "cmux",
         "ctxtags",
         "dynaport",
         "errdetails",
@@ -30,6 +31,7 @@
         "raftboltdb",
         "rawreadat",
         "readat",
+        "soheilhy",
         "stretchr",
         "timeoutc",
         "travisjeffery",
