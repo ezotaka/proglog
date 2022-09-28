@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "boltdb",
         "casbin",
         "ctxtags",
         "dynaport",
@@ -26,9 +27,11 @@
         "protoc",
         "protoimpl",
         "protoreflect",
+        "raftboltdb",
         "rawreadat",
         "readat",
         "stretchr",
+        "timeoutc",
         "travisjeffery",
         "tysonmote",
         "zapcore"
