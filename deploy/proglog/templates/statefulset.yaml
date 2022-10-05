@@ -27,8 +27,8 @@ spec:
             data-dir: /var/run/proglog/data
             rpc-port: {{.Values.rpcPort}}
             bind-addr: "$HOSTNAME.proglog.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"
+            bootstrap: $([ $ID = 0 ] && echo true || echo false )            
             $([ $ID != 0 ] && echo 'start-join-addrs: "proglog-0.proglog.{{.Release.Namespace}}.svc.cluster.local:{{.Values.serfPort}}"')
-            bootstrap: $([ $ID = 0 ] && echo true || echo false )
             EOD
         volumeMounts:
         - name: datadir
@@ -49,7 +49,7 @@ spec:
               - /bin/sh
               - -c
               - |-
-                /bin/grpc_health_probe -addr=$HOSTNAME.proglog.{{.Release.Namespace}}.src.cluster.local:{{.Values.rpcPort}}
+                /bin/grpc_health_probe -addr=$HOSTNAME.proglog.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
           initialDelaySeconds: 10
         livenessProbe:
           exec:
@@ -57,7 +57,7 @@ spec:
               - /bin/sh
               - -c
               - |-
-                /bin/grpc_health_probe -addr=$HOSTNAME.proglog.{{.Release.Namespace}}.src.cluster.local:{{.Values.rpcPort}}
+                /bin/grpc_health_probe -addr=$HOSTNAME.proglog.{{.Release.Namespace}}.svc.cluster.local:{{.Values.rpcPort}}
           initialDelaySeconds: 10
         volumeMounts:
         - name: datadir

@@ -4,7 +4,7 @@ package log
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	api "github.com/ezotaka/proglog/api/v1"
 	"google.golang.org/protobuf/proto"
@@ -27,9 +27,9 @@ func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 	}
 	var err error
 	storeFile, err := os.OpenFile(
-		path.Join(dir, fmt.Sprintf("%d%s", baseOffset, ".store")),
+		filepath.Join(dir, fmt.Sprintf("%d%s", baseOffset, ".store")),
 		os.O_RDWR|os.O_CREATE|os.O_APPEND,
-		0644,
+		0600,
 	)
 	if err != nil {
 		return nil, err
@@ -38,9 +38,9 @@ func newSegment(dir string, baseOffset uint64, c Config) (*segment, error) {
 		return nil, err
 	}
 	indexFile, err := os.OpenFile(
-		path.Join(dir, fmt.Sprintf("%d%s", baseOffset, ".index")),
+		filepath.Join(dir, fmt.Sprintf("%d%s", baseOffset, ".index")),
 		os.O_RDWR|os.O_CREATE,
-		0644,
+		0600,
 	)
 	if err != nil {
 		return nil, err
@@ -103,23 +103,11 @@ func (s *segment) Read(off uint64) (*api.Record, error) {
 // START: ismaxed
 func (s *segment) IsMaxed() bool {
 	return s.store.size >= s.config.Segment.MaxStoreBytes ||
-		s.index.size >= s.config.Segment.MaxIndexBytes
+		s.index.size >= s.config.Segment.MaxIndexBytes ||
+		s.index.isMaxed()
 }
 
 // END: ismaxed
-
-// START: close
-func (s *segment) Close() error {
-	if err := s.index.Close(); err != nil {
-		return err
-	}
-	if err := s.store.Close(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// END: close
 
 // START: remove
 func (s *segment) Remove() error {
@@ -138,7 +126,7 @@ func (s *segment) Remove() error {
 // END: remove
 
 // START: nearestmultiple
-func nearestMultiple(j, k uint64) uint64 {
+func nearestqMultiple(j, k uint64) uint64 {
 	if j >= 0 {
 		return (j / k) * k
 	}
@@ -147,3 +135,16 @@ func nearestMultiple(j, k uint64) uint64 {
 }
 
 // END: nearestmultiple
+
+// START: close
+func (s *segment) Close() error {
+	if err := s.index.Close(); err != nil {
+		return err
+	}
+	if err := s.store.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// END: close

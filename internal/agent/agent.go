@@ -26,7 +26,7 @@ type Agent struct {
 	mux        cmux.CMux
 	log        *log.DistributedLog
 	server     *grpc.Server
-	membership *discovery.MemberShip
+	membership *discovery.Membership
 
 	shutdown     bool
 	shutdowns    chan struct{}
@@ -124,7 +124,7 @@ func (a *Agent) setupLog() error {
 	logConfig.Raft.BindAddr = rpcAddr
 	logConfig.Raft.LocalID = raft.ServerID(a.Config.NodeName)
 	logConfig.Raft.Bootstrap = a.Config.Bootstrap
-	//var err error
+	logConfig.Raft.CommitTimeout = 1000 * time.Millisecond
 	a.log, err = log.NewDistributedLog(
 		a.Config.DataDir,
 		logConfig,

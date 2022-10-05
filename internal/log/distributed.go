@@ -295,6 +295,30 @@ func (l *fsm) applyAppend(b []byte) interface{} {
 	return &api.ProduceResponse{Offset: offset}
 }
 
+// Snapshot implements raft.FSM
+func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
+	r := f.log.Reader()
+	return &snapshot{reader: r}, nil
+}
+
+var _ raft.FSMSnapshot = (*snapshot)(nil)
+
+type snapshot struct {
+	reader io.Reader
+}
+
+// Persist implements raft.FSMSnapshot
+func (s *snapshot) Persist(sink raft.SnapshotSink) error {
+	if _, err := io.Copy(sink, s.reader); err != nil {
+		_ = sink.Cancel()
+		return err
+	}
+	return sink.Close()
+}
+
+// Release implements raft.FSMSnapshot
+func (s *snapshot) Release() {}
+
 // Restore implements raft.FSM
 func (f *fsm) Restore(r io.ReadCloser) error {
 	b := make([]byte, lenWidth)
@@ -328,30 +352,6 @@ func (f *fsm) Restore(r io.ReadCloser) error {
 	return nil
 }
 
-// Snapshot implements raft.FSM
-func (f *fsm) Snapshot() (raft.FSMSnapshot, error) {
-	r := f.log.Reader()
-	return &snapshot{reader: r}, nil
-}
-
-var _ raft.FSMSnapshot = (*snapshot)(nil)
-
-type snapshot struct {
-	reader io.Reader
-}
-
-// Persist implements raft.FSMSnapshot
-func (s *snapshot) Persist(sink raft.SnapshotSink) error {
-	if _, err := io.Copy(sink, s.reader); err != nil {
-		_ = sink.Cancel()
-		return err
-	}
-	return sink.Close()
-}
-
-// Release implements raft.FSMSnapshot
-func (*snapshot) Release() {}
-
 var _ raft.LogStore = (*logStore)(nil)
 
 type logStore struct {
@@ -366,14 +366,15 @@ func newLogStore(dir string, c Config) (*logStore, error) {
 	return &logStore{log}, nil
 }
 
-// DeleteRange implements raft.LogStore
-func (l *logStore) DeleteRange(min uint64, max uint64) error {
-	return l.Truncate(max)
-}
-
 // FirstIndex implements raft.LogStore
 func (l *logStore) FirstIndex() (uint64, error) {
 	return l.LowestOffset()
+}
+
+// LastIndex implements raft.LogStore
+func (l *logStore) LastIndex() (uint64, error) {
+	off, err := l.HighestOffset()
+	return off, err
 }
 
 // GetLog implements raft.LogStore
@@ -387,12 +388,6 @@ func (l *logStore) GetLog(index uint64, out *raft.Log) error {
 	out.Type = raft.LogType(in.Type)
 	out.Term = in.Term
 	return nil
-}
-
-// LastIndex implements raft.LogStore
-func (l *logStore) LastIndex() (uint64, error) {
-	off, err := l.HighestOffset()
-	return off, err
 }
 
 // StoreLog implements raft.LogStore
@@ -414,6 +409,11 @@ func (l *logStore) StoreLogs(records []*raft.Log) error {
 	return nil
 }
 
+// DeleteRange implements raft.LogStore
+func (l *logStore) DeleteRange(min, max uint64) error {
+	return l.Truncate(max)
+}
+
 var _ raft.StreamLayer = (*StreamLayer)(nil)
 
 type StreamLayer struct {
@@ -432,36 +432,6 @@ func NewStreamLayer(
 		serverTLSConfig: serverTLSConfig,
 		peerTLSConfig:   peerTLSConfig,
 	}
-}
-
-// Accept implements raft.StreamLayer
-func (s *StreamLayer) Accept() (net.Conn, error) {
-	conn, err := s.ln.Accept()
-	if err != nil {
-		return nil, err
-	}
-	b := make([]byte, 1)
-	_, err = conn.Read(b)
-	if err != nil {
-		return nil, err
-	}
-	if !bytes.Equal([]byte{byte(RaftRPC)}, b) {
-		return nil, fmt.Errorf("not a raft rpc")
-	}
-	if s.serverTLSConfig != nil {
-		return tls.Server(conn, s.serverTLSConfig), nil
-	}
-	return conn, nil
-}
-
-// Addr implements raft.StreamLayer
-func (s *StreamLayer) Addr() net.Addr {
-	return s.ln.Addr()
-}
-
-// Close implements raft.StreamLayer
-func (s *StreamLayer) Close() error {
-	return s.ln.Close()
 }
 
 const RaftRPC = 1
@@ -485,4 +455,35 @@ func (s *StreamLayer) Dial(
 		conn = tls.Client(conn, s.peerTLSConfig)
 	}
 	return conn, err
+
+}
+
+// Accept implements raft.StreamLayer
+func (s *StreamLayer) Accept() (net.Conn, error) {
+	conn, err := s.ln.Accept()
+	if err != nil {
+		return nil, err
+	}
+	b := make([]byte, 1)
+	_, err = conn.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	if !bytes.Equal([]byte{byte(RaftRPC)}, b) {
+		return nil, fmt.Errorf("not a raft rpc")
+	}
+	if s.serverTLSConfig != nil {
+		return tls.Server(conn, s.serverTLSConfig), nil
+	}
+	return conn, nil
+}
+
+// Close implements raft.StreamLayer
+func (s *StreamLayer) Close() error {
+	return s.ln.Close()
+}
+
+// Addr implements raft.StreamLayer
+func (s *StreamLayer) Addr() net.Addr {
+	return s.ln.Addr()
 }

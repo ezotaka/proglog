@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type MemberShip struct {
+type Membership struct {
 	Config
 	handler Handler
 	serf    *serf.Serf
@@ -16,8 +16,8 @@ type MemberShip struct {
 	logger  *zap.Logger
 }
 
-func New(handler Handler, config Config) (*MemberShip, error) {
-	c := &MemberShip{
+func New(handler Handler, config Config) (*Membership, error) {
+	c := &Membership{
 		Config:  config,
 		handler: handler,
 		logger:  zap.L().Named("membership"),
@@ -35,7 +35,7 @@ type Config struct {
 	StartJoinAddrs []string
 }
 
-func (m *MemberShip) setupSerf() (err error) {
+func (m *Membership) setupSerf() (err error) {
 	addr, err := net.ResolveTCPAddr("tcp", m.BindAddr)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ type Handler interface {
 	Leave(name string) error
 }
 
-func (m *MemberShip) eventHandler() {
+func (m *Membership) eventHandler() {
 	for e := range m.events {
 		switch e.EventType() {
 		case serf.EventMemberJoin:
@@ -77,10 +77,10 @@ func (m *MemberShip) eventHandler() {
 				}
 				m.handleJoin(member)
 			}
-		case serf.EventMemberLeave:
+		case serf.EventMemberLeave, serf.EventMemberFailed:
 			for _, member := range e.(serf.MemberEvent).Members {
 				if m.isLocal(member) {
-					continue
+					return
 				}
 				m.handleLeave(member)
 			}
@@ -88,19 +88,36 @@ func (m *MemberShip) eventHandler() {
 	}
 }
 
-func (m *MemberShip) isLocal(member serf.Member) bool {
+func (m *Membership) handleJoin(member serf.Member) {
+	if err := m.handler.Join(
+		member.Name,
+		member.Tags["rpc_addr"],
+	); err != nil {
+		m.logError(err, "failed to join", member)
+	}
+}
+
+func (m *Membership) handleLeave(member serf.Member) {
+	if err := m.handler.Leave(
+		member.Name,
+	); err != nil {
+		m.logError(err, "failed to leave", member)
+	}
+}
+
+func (m *Membership) isLocal(member serf.Member) bool {
 	return m.serf.LocalMember().Name == member.Name
 }
 
-func (m *MemberShip) Members() []serf.Member {
+func (m *Membership) Members() []serf.Member {
 	return m.serf.Members()
 }
 
-func (m *MemberShip) Leave() error {
+func (m *Membership) Leave() error {
 	return m.serf.Leave()
 }
 
-func (m *MemberShip) logError(err error, msg string, member serf.Member) {
+func (m *Membership) logError(err error, msg string, member serf.Member) {
 	log := m.logger.Error
 	if err == raft.ErrNotLeader {
 		log = m.logger.Debug
@@ -111,21 +128,4 @@ func (m *MemberShip) logError(err error, msg string, member serf.Member) {
 		zap.String("name", member.Name),
 		zap.String("rpc_addr", member.Tags["rpc_addr"]),
 	)
-}
-
-func (m *MemberShip) handleJoin(member serf.Member) {
-	if err := m.handler.Join(
-		member.Name,
-		member.Tags["rpc_addr"],
-	); err != nil {
-		m.logError(err, "failed to join", member)
-	}
-}
-
-func (m *MemberShip) handleLeave(member serf.Member) {
-	if err := m.handler.Leave(
-		member.Name,
-	); err != nil {
-		m.logError(err, "failed to leave", member)
-	}
 }

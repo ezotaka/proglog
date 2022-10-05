@@ -34,8 +34,8 @@ func TestMembership(t *testing.T) {
 	require.Equal(t, "2", <-handler.leaves)
 }
 
-func setupMember(t *testing.T, members []*MemberShip) (
-	[]*MemberShip, *handler,
+func setupMember(t *testing.T, members []*Membership) (
+	[]*Membership, *handler,
 ) {
 	id := len(members)
 	ports := dynaport.Get(1)

@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	api "github.com/ezotaka/proglog/api/v1"
@@ -55,16 +54,16 @@ func NewGRPCServer(config *Config, grpcOpts ...grpc.ServerOption) (
 		),
 	}
 
-	// trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
-	halfSampler := trace.ProbabilitySampler(0.5)
-	trace.ApplyConfig(trace.Config{
-		DefaultSampler: func(p trace.SamplingParameters) trace.SamplingDecision {
-			if strings.Contains(p.Name, "Produce") {
-				return trace.SamplingDecision{Sample: true}
-			}
-			return halfSampler(p)
-		},
-	})
+	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
+	// halfSampler := trace.ProbabilitySampler(0.5)
+	// trace.ApplyConfig(trace.Config{
+	// 	DefaultSampler: func(p trace.SamplingParameters) trace.SamplingDecision {
+	// 		if strings.Contains(p.Name, "Produce") {
+	// 			return trace.SamplingDecision{Sample: true}
+	// 		}
+	// 		return halfSampler(p)
+	// 	},
+	// })
 	err := view.Register(ocgrpc.DefaultServerViews...)
 	if err != nil {
 		return nil, err

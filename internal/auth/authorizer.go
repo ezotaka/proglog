@@ -25,7 +25,7 @@ func (a *Authorizer) Authorize(subject, object, action string) error {
 			"%s not permitted to %s to %s",
 			subject,
 			action,
-			action,
+			object,
 		)
 		st := status.New(codes.PermissionDenied, msg)
 		return st.Err()
