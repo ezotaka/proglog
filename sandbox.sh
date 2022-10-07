@@ -1,0 +1,1 @@
+kubectl get service -l app=service-per-pod -o go-template='{{range .items}}{{(index .status.loadBalancer.ingress 0).ip}}{{"\n"}}{{end}}'| head -n 1

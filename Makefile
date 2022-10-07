@@ -57,3 +57,7 @@ TAG ?= 0.0.1
 
 build-docker:
 	docker build -t github.com/ezotaka/proglog:$(TAG) .
+
+build-docker-gke:
+	docker build --platform linux/amd64 -t github.com/ezotaka/proglog:$(TAG) --build-arg ARCH='amd64' .
+
